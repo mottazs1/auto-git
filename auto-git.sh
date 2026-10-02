@@ -1,5 +1,8 @@
 #!/bin/bash
 
+
+function switch_branch (){
+
 selected=$(git branch | fzf +m \
         --height 40% \
         --layout reverse \
@@ -24,3 +27,6 @@ echo "$selected"
 
 git switch "$selected"
 
+}
+
+switch_branch
