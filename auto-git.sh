@@ -1,8 +1,16 @@
 #!/bin/bash
 
-hello="Hello world!!"
-iam=" I am Motta Dev"
+selected=$(git branch | fzf \
+	--height 40% \
+	--layout reverse \
+	--border \
+	--preview \
+		'git log --oneline $(echo {} | tr -d "* ")' \
+	--color bg:#222222,preview-bg:#333333)
 
-echo "$hello"
+selected=$(echo $selected | tr -d "* ")
 
-echo "$iam"
+echo "$selected"
+
+git switch "$selected"
+
