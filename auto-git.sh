@@ -5,14 +5,15 @@ selected=$(git branch | fzf +m \
         --layout reverse \
         --border \
         --preview \
-                'git log --oneline $(echo {} | tr -d "* ")' \
+	'git log --oneline $(echo {} | tr -d "* ")'  \
         --color bg:#222222,preview-bg:#333333)
 
 
 
-if [ $? -eq 130 ]; then
+if [ $? -eq 0 ]; then
         echo "Exiting..."
         exit 1
+
 fi
 
 
