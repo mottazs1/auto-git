@@ -10,7 +10,7 @@ selected=$(git branch | fzf +m \
 
 
 
-if [ $? -eq 0 ]; then
+if [ $? -eq 127 ]; then
         echo "Exiting..."
         exit 1
 
