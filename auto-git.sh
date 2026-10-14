@@ -119,6 +119,7 @@ function main_menu () {
 		*)
 				echo "Invalid option"
 				exit 1
-
+		;;
+	esac
 }
 
