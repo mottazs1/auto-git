@@ -34,7 +34,8 @@ function exit_exception () {
 function switch_branch (){
 
 	selected=$(git branch | fzf +m \
-        --height 40% \
+        --header "Select a branch to switch to: " \
+		--height 40% \
         --layout reverse \
         --border\
         --preview\
@@ -51,6 +52,7 @@ function switch_branch (){
 function merge (){
 
 	selected=$(git branch | fzf +m \
+        --header "Select a branch to merge: " \
         --height 100%\
         --layout reverse\
         --border\
@@ -68,6 +70,7 @@ git merge "$selected"
 function delete_branch (){
 
 	selected=$(git branch | fzf +m \
+		--header "Select a branch to delete: " \
 		--height 40% \
 		--layout reverse \
 		--border\
@@ -92,7 +95,8 @@ function main_menu () {
 	)
 
 	selected=$(( for option in "${options[@]}"; do echo "$option"; done | fzf +m \
-	 		--height 40% \
+	 		--header "Select an option: " \
+			--height 40% \
 			--layout reverse \
 			--border \
 			--color bg:#222222)
@@ -100,26 +104,26 @@ function main_menu () {
 	exit_exception
 
 	case "$selected" in
-		"${options[0]}" in
+		"${options[0]}"
 				switch_branch
 				exit 0
 		;;
-		"${options[1]}" in
+		"${options[1]}"
 				merge
 				exit 0
 		;;
-		"${options[2]}" in
+		"${options[2]}"
 				delete_branch
 				exit 0
 		;;
-		"${options[3]}" in
+		"${options[3]}"
 				echo "Exiting..."
 				exit 0
 		;;
 		*)
 				echo "Invalid option"
 				exit 1
-		;;
 	esac
 }
 
+main
