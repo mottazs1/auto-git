@@ -121,4 +121,4 @@ function main_menu () {
 	esac
 }
 
-main
+main_menu
