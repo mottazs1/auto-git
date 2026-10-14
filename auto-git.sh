@@ -81,4 +81,44 @@ function delete_branch (){
 
 	git branch -d "$selected"
 }
-delete_branch
+
+function main_menu () {
+	
+	options=(\
+		"1 - Switch Branch" \
+		"2 - Merge Branch" \
+		"3 - Delete Branch" \
+		"4 - Exit" \
+	)
+
+	selected=$(( for option in "${options[@]}"; do echo "$option"; done | fzf +m \
+	 		--height 40% \
+			--layout reverse \
+			--border \
+			--color bg:#222222)
+
+	exit_exception
+
+	case "$selected" in
+		"${options[0]}" in
+				switch_branch
+				exit 0
+		;;
+		"${options[1]}" in
+				merge
+				exit 0
+		;;
+		"${options[2]}" in
+				delete_branch
+				exit 0
+		;;
+		"${options[3]}" in
+				echo "Exiting..."
+				exit 0
+		;;
+		*)
+				echo "Invalid option"
+				exit 1
+
+}
+
