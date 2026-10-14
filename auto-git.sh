@@ -1,5 +1,12 @@
 #!/bin/bash
 
+function exit_exception () {
+        if [ $? -eq 127 ]; then
+        echo "Exiting..."
+        exit 1
+
+        fi
+}
 
 function switch_branch (){
 
@@ -13,11 +20,7 @@ selected=$(git branch | fzf +m \
 
 
 
-if [ $? -eq 127 ]; then
-        echo "Exiting..."
-        exit 1
 
-fi
 
 
 
@@ -25,7 +28,7 @@ selected=$(echo $selected | tr -d "* ")
 
 echo "$selected"
 
-git switch "$selected"
+git switch --merge "$selected"
 
 }
 
