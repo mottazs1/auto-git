@@ -91,7 +91,7 @@ function main_menu () {
 		"4 - Exit" \
 	)
 
-	selected=$(( for option in "${options[@]}"; do echo "$option"; done | fzf +m \
+	selected=$(( for opt in "${options[@]}"; do echo $opt ; done | fzf +m \
 	 		--height 40% \
 			--layout reverse \
 			--border \
@@ -100,26 +100,25 @@ function main_menu () {
 	exit_exception
 
 	case "$selected" in
-		"${options[0]}" in
+		"${options[0]}"
 				switch_branch
 				exit 0
 		;;
-		"${options[1]}" in
+		"${options[1]}"
 				merge
 				exit 0
 		;;
-		"${options[2]}" in
+		"${options[2]}"
 				delete_branch
 				exit 0
 		;;
-		"${options[3]}" in
-				echo "Exiting..."
+		"${options[3]}"
 				exit 0
 		;;
 		*)
 				echo "Invalid option"
 				exit 1
-		;;
 	esac
 }
 
+main
