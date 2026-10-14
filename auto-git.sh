@@ -1,129 +1,158 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
-selected=$(git branch | fzf +m \
-	--height 40% \
-	--layout reverse \
-	--border \
-	--preview \
-		'git log --oneline $(echo {} | tr -d "* ")' \
-	--color bg:#222222,preview-bg:#333333)
+set -o errexit
+set -o nounset
+set -o pipefail
 
+readonly SCRIPT_NAME="auto-git"
 
-
-if [ $? -eq 130 ]; then
-	echo "Exiting..."
-	exit 1
-fi
-
-
-
-selected=$(echo $selected | tr -d "* ")
-
-echo "$selected"
-
-git switch "$selected"
-
-function exit_exception () {
-        if [ $? -eq 130 ]; then
-        echo "Exiting..."
-        exit 1
-
-        fi
+die() {
+    printf '%s: %s\n' "$SCRIPT_NAME" "$*" >&2
+    exit 1
 }
 
-function switch_branch (){
-
-	selected=$(git branch | fzf +m \
-        --header "Select a branch to switch to: " \
-		--height 40% \
-        --layout reverse \
-        --border\
-        --preview\
-				'git -c color.ui=always --oneline $(echo {} | tr -d "* ")'  \
-        --color bg:#222222,preview-bg:#333333)
-
-	exit_exception
-
-	selected=$(echo $selected | tr -d "* ")
-
-	git switch "$selected"
+require_command() {
+    command -v "$1" >/dev/null 2>&1 ||
+        die "o comando obrigatório não foi encontrado: $1"
 }
 
-function merge (){
-
-	selected=$(git branch | fzf +m \
-        --header "Select a branch to merge: " \
-        --height 100%\
-        --layout reverse\
-        --border\
-        --preview\
-	'git -c color.ui=always diff $(git branch | grep "^*" | tr -d "* ") $(echo {} | tr -d "* ")'  \
-        --color bg:#222222,preview-bg:#333333)
-
-exit_exception
-
-selected=$(echo $selected | tr -d "* ")
-
-git merge "$selected"
+check_repository() {
+    git rev-parse --is-inside-work-tree >/dev/null 2>&1 ||
+        die "execute este script dentro de um repositório Git"
 }
 
-function delete_branch (){
-
-	selected=$(git branch | fzf +m \
-		--header "Select a branch to delete: " \
-		--height 40% \
-		--layout reverse \
-		--border\
-		--preview\
-				'git -c color.ui=always diff $(git branch | grep "^*" | tr -d "* ") $(echo {} | tr -d "* ")'  \
-		--color bg:#222222,preview-bg:#333333)
-
-	exit_exception
-
-	selected=$(echo $selected | tr -d "* ")
-
-	git branch -d "$selected"
+current_branch() {
+    git branch --show-current
 }
 
-function main_menu () {
-	
-	options=(\
-		"1 - Switch Branch" \
-		"2 - Merge Branch" \
-		"3 - Delete Branch" \
-		"4 - Exit" \
-	)
-
-	selected=$(( for option in "${options[@]}"; do echo "$option"; done | fzf +m \
-	 		--header "Select an option: " \
-			--height 40% \
-			--layout reverse \
-			--border \
-			--color bg:#222222)
-
-	exit_exception
-
-	case "$selected" in
-		"${options[0]}"
-				switch_branch
-				exit 0
-		;;
-		"${options[1]}"
-				merge
-				exit 0
-		;;
-		"${options[2]}"
-				delete_branch
-				exit 0
-		;;
-		"${options[3]}"
-				echo "Exiting..."
-				exit 0
-		;;
-		*)
-				echo "Invalid option"
-				exit 1
-	esac
+branch_list() {
+    git for-each-ref --format='%(refname:short)' refs/heads/
 }
 
+select_branch() {
+    local prompt="$1"
+    local branches="$2"
+    local selected
+
+    if [[ -z "$branches" ]]; then
+        printf 'Nenhuma branch disponível para esta operação.\n' >&2
+        return 1
+    fi
+
+    if ! selected=$(printf '%s\n' "$branches" |
+        fzf --no-multi \
+            --header="$prompt" \
+            --height=40% \
+            --layout=reverse \
+            --border \
+            --preview='git log --color=always --decorate --oneline -n 20 -- {}' \
+            --preview-window=right:60% \
+            --color='bg:#222222,preview-bg:#333333'); then
+        return 1
+    fi
+
+    [[ -n "$selected" ]] || return 1
+    printf '%s\n' "$selected"
+}
+
+switch_branch() {
+    local selected
+
+    selected=$(select_branch "Selecione a branch para trocar:" "$(branch_list)") || return 0
+    git switch -- "$selected"
+}
+
+merge_branch() {
+    local selected
+    local current
+
+    current=$(current_branch)
+    [[ -n "$current" ]] ||
+        die "não é possível fazer merge enquanto o HEAD está detached"
+
+    selected=$(select_branch "Selecione a branch para fazer merge:" "$(branch_list)") || return 0
+    [[ "$selected" != "$current" ]] ||
+        die "a branch atual não pode ser mesclada consigo mesma"
+
+    git merge -- "$selected"
+}
+
+delete_branch() {
+    local selected
+    local current
+    local branches
+
+    current=$(current_branch)
+    branches=$(branch_list)
+    if [[ -n "$current" ]]; then
+        branches=$(printf '%s\n' "$branches" | grep -Fvx -- "$current" || true)
+    fi
+
+    selected=$(select_branch "Selecione a branch para excluir:" "$branches") || return 0
+    git branch --delete -- "$selected"
+}
+
+create_branch() {
+    local branch_name
+
+    printf 'Nome da nova branch: '
+    read -r branch_name
+
+    if [[ -z "$branch_name" ]]; then
+        printf 'O nome da branch não pode ser vazio.\n' >&2
+        return 1
+    fi
+
+    if ! git check-ref-format --branch "$branch_name" >/dev/null 2>&1; then
+        printf 'Nome de branch inválido: %s\n' "$branch_name" >&2
+        return 1
+    fi
+
+    git switch --create "$branch_name"
+}
+
+main_menu() {
+    local choice
+
+    while true; do
+        choice=$(printf '%s\n' \
+            "1 - Trocar branch" \
+            "2 - Fazer merge" \
+            "3 - Excluir branch" \
+            "4 - Criar nova branch" \
+            "5 - Sair" |
+            fzf --no-multi \
+                --header="Selecione uma operação:" \
+                --height=40% \
+                --layout=reverse \
+                --border \
+                --color='bg:#222222') || return 0
+
+        case "$choice" in
+            "1 - Trocar branch")
+                switch_branch
+                ;;
+            "2 - Fazer merge")
+                merge_branch
+                ;;
+            "3 - Excluir branch")
+                delete_branch
+                ;;
+            "4 - Criar nova branch")
+                create_branch
+                ;;
+            "5 - Sair")
+                printf 'Saindo...\n'
+                return 0
+                ;;
+            *)
+                die "opção inválida: $choice"
+                ;;
+        esac
+    done
+}
+
+require_command git
+require_command fzf
+check_repository
 main_menu
