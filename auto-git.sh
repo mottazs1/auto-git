@@ -34,7 +34,8 @@ function exit_exception () {
 function switch_branch (){
 
 	selected=$(git branch | fzf +m \
-        --height 40% \
+        --header "Select a branch to switch to: " \
+		--height 40% \
         --layout reverse \
         --border\
         --preview\
@@ -51,6 +52,7 @@ function switch_branch (){
 function merge (){
 
 	selected=$(git branch | fzf +m \
+        --header "Select a branch to merge: " \
         --height 100%\
         --layout reverse\
         --border\
@@ -68,6 +70,7 @@ git merge "$selected"
 function delete_branch (){
 
 	selected=$(git branch | fzf +m \
+		--header "Select a branch to delete: " \
 		--height 40% \
 		--layout reverse \
 		--border\
@@ -91,8 +94,9 @@ function main_menu () {
 		"4 - Exit" \
 	)
 
-	selected=$(( for opt in "${options[@]}"; do echo $opt ; done | fzf +m \
-	 		--height 40% \
+	selected=$(( for option in "${options[@]}"; do echo "$option"; done | fzf +m \
+	 		--header "Select an option: " \
+			--height 40% \
 			--layout reverse \
 			--border \
 			--color bg:#222222)
@@ -113,6 +117,7 @@ function main_menu () {
 				exit 0
 		;;
 		"${options[3]}"
+				echo "Exiting..."
 				exit 0
 		;;
 		*)
